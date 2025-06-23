@@ -64,7 +64,7 @@ This Unity project enables **interactive, immersive data visualizations in Virtu
 git clone https://github.com/VemburajYadav/VR-Interactive-Data-Visualizations-Unity.git
 ```
 
-### Open in Unity
+### 2. Open in Unity
 
 - **Unity Version**: `2022.x` or later
 
@@ -88,6 +88,12 @@ Day,CompanyA,CompanyB,CompanyC
 - Each file represents **one dataset**:
   - The **first column** is used as the **X-axis** (e.g., Day, Year, Time).
   - Each **subsequent column** becomes a separate **line in the chart**.
+
+  
+### 4. Play the Scene:
+
+- Open the **LineChartCanvas** scene from `Assets/Scenes/LineChartCanvas.unity`
+- Play in editor or build for HoloLens2
 
 ---
 
