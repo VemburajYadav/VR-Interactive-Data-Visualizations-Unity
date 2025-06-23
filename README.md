@@ -37,7 +37,7 @@ This Unity project enables **interactive, immersive data visualizations in Virtu
   - Generates line charts
   - Creates axis labels and separators
   - Builds a dataset selection panel (radio-toggle group)
-  - Builds per-series toggle controls to select the prederred line charts for comparison
+  - Builds per-series toggle controls to select the preferred line charts for comparison
   - Generates interactable data points for the graph `StatefulInteractable`
   - Displays metadata on hover (X, Y, and optionally derived info like % change)
 
