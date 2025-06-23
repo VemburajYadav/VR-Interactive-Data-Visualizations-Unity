@@ -61,7 +61,7 @@ This Unity project enables **interactive, immersive data visualizations in Virtu
 ### 1. Clone the Repo
 
 ```bash
-git clone https://github.com/your-username/VR-Interactive-Chart.git
+git clone https://github.com/VemburajYadav/VR-Interactive-Data-Visualizations-Unity.git
 ```
 
 ### Open in Unity
