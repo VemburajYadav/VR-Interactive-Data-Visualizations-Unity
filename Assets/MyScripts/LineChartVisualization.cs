@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -44,6 +44,12 @@ public class LineChartVisualization : MonoBehaviour
 
     [SerializeField]
     GameObject separatorTemplateY;
+
+    [SerializeField]
+    GameObject xLabelGameObject;
+
+    [SerializeField]
+    GameObject yLabelGameObject;
 
     // GameObject Transform Variables
     private RectTransform separatorTransformX;
@@ -165,9 +171,6 @@ public class LineChartVisualization : MonoBehaviour
 
         AddListenersToDatasetToggles();
         AddListenersToChartToggles();
-        // ShowLineChart(fileNames[1], datasets[fileNames[1]].headers[1]);
-        // ShowLineChart(fileNames[1], datasets[fileNames[1]].headers[2]);
-        // ShowLineChart(fileNames[1], datasets[fileNames[1]].headers[3]);
     }
 
     private void AddListenersToDatasetToggles()
@@ -198,6 +201,7 @@ public class LineChartVisualization : MonoBehaviour
                 {
                     RemoveChartToggles(currentDataset);
                     RemoveAllLineCharts();
+                    SetLabels(" ", " ");
                     prevDataset = null;
                 }
             });
@@ -239,24 +243,15 @@ public class LineChartVisualization : MonoBehaviour
 
     private void ShowLineChart(string datasetName, string header)
     {
-        /***
-        if (datasetOnDisplay != datasetName)
-        {
-            if (datasetOnDisplay != null)
-            {
-                DeactivateSeparators(datasetOnDisplay);
-            }
-            ActivateSeparators(datasetName);
-            datasetOnDisplay = datasetName;
-        }
-        ***/
         if (datasetOnDisplay != null)
         {
             DeactivateSeparators(datasetOnDisplay);
         }
+
         ActivateSeparators(datasetName);
         datasetOnDisplay = datasetName;
         lineChartGameObjects[datasetName][header].SetActive(true);
+        SetLabels(StringInTitleCaseWithUnits(datasets[datasetName].headers[0], false), StringInTitleCaseWithUnits(datasetName, true));
     }
 
     private void RemoveLineChart(string datasetName, string header)
@@ -464,7 +459,8 @@ public class LineChartVisualization : MonoBehaviour
             datasetOption.SetParent(optionsLayoutTransform, false);
             datasetOption.gameObject.SetActive(false);
             GameObject textObj = datasetOption.Find("Frontplate/AnimatedContent/Text").gameObject;
-            textObj.GetComponent<TextMeshProUGUI>().text = string.Join(" ", datasetNames[i].Split('_').Select(word => char.ToUpper(word[0]) + word.Substring(1).Split('.')[0]));
+            textObj.GetComponent<TextMeshProUGUI>().text = StringInTitleCaseWithUnits(datasetNames[i], false);
+            // textObj.GetComponent<TextMeshProUGUI>().text = string.Join(" ", datasetNames[i].Split('_').Select(word => char.ToUpper(word[0]) + word.Substring(1).Split('.')[0]));
             datasetToggleGameObjects[datasetNames[i]] = datasetOption.gameObject;
         }
     }
@@ -483,7 +479,10 @@ public class LineChartVisualization : MonoBehaviour
                 lineChartOption.SetParent(optionsLayoutTransform, false);
                 lineChartOption.gameObject.SetActive(false);
                 GameObject textObj = lineChartOption.Find("Frontplate/AnimatedContent/Text").gameObject;
-                textObj.GetComponent<TextMeshProUGUI>().text = string.Join(" ", headers[j].Split('_').Select(word => char.ToUpper(word[0]) + word.Substring(1)));
+                textObj.GetComponent<TextMeshProUGUI>().text = StringInTitleCaseWithUnits(headers[j], false);
+                textObj.GetComponent<TextMeshProUGUI>().color = colorDict[datasetNames[i]][headers[j]];
+
+                // textObj.GetComponent<TextMeshProUGUI>().text = string.Join(" ", headers[j].Split('_').Select(word => char.ToUpper(word[0]) + word.Substring(1)));
                 toggleObjects[headers[j]] = lineChartOption.gameObject;
             }
             chartToggleGameObjects[datasetNames[i]] = toggleObjects;
@@ -512,6 +511,19 @@ public class LineChartVisualization : MonoBehaviour
         }
         RemoveAllLineCharts();
     }
+
+    private void RemoveDatasetToggles()
+    {
+        for (int i = 0; i < fileNames.Count; i++)
+        {
+            GameObject gameObject = datasetToggleGameObjects[fileNames[i]];
+            gameObject.SetActive(false);
+        }
+
+        datasetToggles = toggleDatasetTransform.parent.gameObject.GetComponent<ToggleCollection>();
+        datasetToggles.enabled = false;
+    }
+
 
     private void ShowDatasetToggles()
     {
@@ -590,33 +602,59 @@ public class LineChartVisualization : MonoBehaviour
         for (int i = 0; i < fileNames.Count; i++)
         {
             List<string> headers = datasets[fileNames[i]].headers;
+            string datasetName = fileNames[i];
+            int datasetIndex = i;
+
             for (int j = 0; j < (headers.Count - 1); j++)
             {
                 List<GameObject> pointObjects = dataPointGameObjects[fileNames[i]][headers[j + 1]];
                 LineChartData chart = lineChartDict[fileNames[i]][headers[j + 1]];
                 Color metadataColor = colorDict[fileNames[i]][headers[j + 1]];
+                string header = datasets[fileNames[i]].headers[j + 1];
                 for (int k = 0; k < pointObjects.Count; k++)
                 {
                     GameObject pointObj = pointObjects[k];
                     StatefulInteractable interactable = pointObj.GetComponent<StatefulInteractable>();
                     RectTransform rectTransforn = pointObj.GetComponent<RectTransform>();
-                    GameObject metadataTextObj = rectTransforn.GetChild(0).gameObject;
-                    RectTransform metadataTextTransform = metadataTextObj.GetComponent<RectTransform>();
+                    GameObject pointGlowObj = rectTransforn.Find("BackGlow").gameObject;
+                    GameObject metadataTextContainer = rectTransforn.GetChild(0).gameObject;
+                    RectTransform metadataTextTransform = metadataTextContainer.GetComponent<RectTransform>();
                     Vector2 dataPointCoord = new Vector2(chart.pointCoordsX[k], chart.pointCoordsY[k]);
 
+                    int index = k;
                     // Add Listeners to the hoverEntered and hoverExited events
                     interactable.hoverEntered.AddListener(hoverArgs =>
                     {
-                        metadataTextObj.SetActive(true);
-                        metadataTextObj.GetComponent<TextMeshProUGUI>().text = $"X: {Math.Round(dataPointCoord.x, 2)}{Environment.NewLine}Y: {Math.Round(dataPointCoord.y, 2)}";
+                        metadataTextContainer.SetActive(true);
+                        GameObject metadataTextObj = metadataTextTransform.GetChild(1).gameObject;
+                        // metadataTextObj.GetComponent<TextMeshProUGUI>().text = $"X: {Math.Round(dataPointCoord.x, 2)}{Environment.NewLine}Y: {Math.Round(dataPointCoord.y, 2)}";
+                        // metadataTextObj.GetComponent<TextMeshProUGUI>().text = SimpleHoverInfo(dataPointCoord.x, dataPointCoord.y, datasetName);
+                        if (datasetIndex == 0)
+                        {
+                            metadataTextObj.GetComponent<TextMeshProUGUI>().text = HoverInfoWithChangePercentage(dataPointCoord.x, dataPointCoord.y, datasetName, header, index, true);
+                        }
+                        else 
+                        {
+                            if (datasetIndex == 1)
+                            {
+                                metadataTextObj.GetComponent<TextMeshProUGUI>().text = SimpleHoverInfo(dataPointCoord.x, dataPointCoord.y, datasetName);
+                            }
+                            else
+                            {
+                                metadataTextObj.GetComponent<TextMeshProUGUI>().text = HoverInfoWithChangePercentage(dataPointCoord.x, dataPointCoord.y, datasetName, header, index, false);
+                            }
+                        }
+
                         metadataTextObj.GetComponent<TextMeshProUGUI>().color = metadataColor;
                         metadataTextObj.GetComponent<TextMeshProUGUI>().fontSize = 6;
-                        Debug.Log("Data Point Select Entered" + metadataTextTransform.anchoredPosition);
+                        pointGlowObj.SetActive(true);
+                        // Debug.Log("Data Point Select Entered" + metadataTextTransform.anchoredPosition);
                     });
 
                     interactable.hoverExited.AddListener(hoverArgs =>
                     {
-                        metadataTextObj.SetActive(false);
+                        metadataTextContainer.SetActive(false);
+                        pointGlowObj.SetActive(false);
                         Debug.Log("Data Point Select Exited");
                     });
                 }
@@ -624,6 +662,63 @@ public class LineChartVisualization : MonoBehaviour
         }
     }
 
+    private string SimpleHoverInfo(float x, float y, string datasetName)
+    {
+        string xPrefix = ExtractFromUnits(datasets[datasetName].headers[0], false);
+        string yPrefix = ExtractFromUnits(datasetName, false);
+        string ySuffix = ExtractFromUnits(datasetName, true);
+        string metadata = $"{xPrefix}: {Math.Round(x, 2)}{Environment.NewLine}{yPrefix}: {Math.Round(y, 2)} {ySuffix}";
+        Debug.Log($"{xPrefix}, {yPrefix}, {ySuffix}");
+        return metadata; 
+    }
+
+    private string HoverInfoWithChangePercentage(float x, float y, string datasetName, string header, int index, bool reverse)
+    {
+        string up_green = "<color=green>▲</color>";
+        string up_red = "<color=red>▲</color>";   // U+25B2
+
+        string down_green = "<color=green>▼</color>";
+        string down_red = "<color=red>▼</color>";         // U+25BC
+
+        string up, down;
+
+        if (reverse)
+        {
+            up = up_red;
+            down = down_green;
+        }
+        else
+        {
+            up = up_green;
+            down = down_red;
+        }
+        string xPrefix = ExtractFromUnits(datasets[datasetName].headers[0], false);
+        string yPrefix = ExtractFromUnits(datasetName, false);
+        string ySuffix = ExtractFromUnits(datasetName, true);
+
+        LineChartData chart = lineChartDict[datasetName][header];
+        string metadata;
+
+        if (index == 0)
+        {
+            metadata = $"{xPrefix}: {Math.Round(x, 2)}{Environment.NewLine}{yPrefix}: {Math.Round(y, 2)} {ySuffix}";
+        }
+        else
+        {
+            float prevY = chart.pointCoordsY[index - 1];
+            float relDiff = ((y - prevY) / prevY) * 100f;
+            if (relDiff >= 0)
+            {
+                metadata = $"{xPrefix}: {Math.Round(x, 2)}{Environment.NewLine}{yPrefix}: {Math.Round(y, 2)} {ySuffix} <color=yellow>({up}by {Math.Round(relDiff, 1)} %)</color>";
+            }
+            else
+            {
+                metadata = $"{xPrefix}: {Math.Round(x, 2)}{Environment.NewLine}{yPrefix}: {Math.Round(y, 2)} {ySuffix} <color=yellow>({down}by {Math.Round(Math.Abs(relDiff), 1) }%)</color>";
+            }
+
+        }
+        return metadata;
+    }
 
     private void CreateAllSeparatorXObjects()
     {
@@ -760,8 +855,14 @@ public class LineChartVisualization : MonoBehaviour
         rectTransform.anchorMax = new Vector2(0, 1);
         rectTransform.localEulerAngles = new Vector3(0, 0, UtilsClass.GetAngleFromVectorFloat(dir));
         Vector3 localPos = rectTransform.localPosition;
-        rectTransform.localPosition = new Vector3(localPos.x,  localPos.y, -4f);
+        rectTransform.localPosition = new Vector3(localPos.x, localPos.y, -4f);
         return gameObject;
+    }
+
+    private void SetLabels(string xLabel, string yLabel)
+    {
+        xLabelGameObject.GetComponent<TextMeshProUGUI>().text = string.Join(" ", xLabel.Split('_').Select(word => char.ToUpper(word[0]) + word.Substring(1).Split('.')[0]));
+        yLabelGameObject.GetComponent<TextMeshProUGUI>().text = string.Join(" ", yLabel.Split('_').Select(word => char.ToUpper(word[0]) + word.Substring(1).Split('.')[0]));
     }
 
     // Start is called before the first frame update
@@ -771,9 +872,158 @@ public class LineChartVisualization : MonoBehaviour
     }
 
 
-    // Update is called once per frame
-    void Update()
+    public void DestroyAllChartObjects()
     {
+        // Destroy lineChartGameObjects (single GameObject per key)
+        foreach (var chartDict in lineChartGameObjects.Values)
+        {
+            foreach (var obj in chartDict.Values)
+            {
+                if (obj != null)
+                    Destroy(obj);
+            }
+        }
+        lineChartGameObjects.Clear();
 
+        // Destroy all dictionaries containing lists of GameObjects
+        DestroyNestedDictionaryLists(dataPointGameObjects);
+        DestroyNestedDictionaryLists(dataLineGameObjects);
+        DestroyNestedDictionaryLists(separatorXGameObjects);
+        DestroyNestedDictionaryLists(separatorYGameObjects);
+
+        // Destroy datasetToggleGameObjects (single level dictionary)
+        foreach (var obj in datasetToggleGameObjects.Values)
+        {
+            if (obj != null)
+                Destroy(obj);
+        }
+        datasetToggleGameObjects.Clear();
+
+        // Destroy chartToggleGameObjects (nested dictionary)
+        foreach (var chartDict in chartToggleGameObjects.Values)
+        {
+            foreach (var obj in chartDict.Values)
+            {
+                if (obj != null)
+                    Destroy(obj);
+            }
+        }
+        chartToggleGameObjects.Clear();
+    }
+
+    // Helper method to destroy objects in nested dictionary lists
+    private void DestroyNestedDictionaryLists(Dictionary<string, Dictionary<string, List<GameObject>>> dict)
+    {
+        foreach (var outerDict in dict.Values)
+        {
+            foreach (var list in outerDict.Values)
+            {
+                foreach (var obj in list)
+                {
+                    if (obj != null)
+                        Destroy(obj);
+                }
+            }
+        }
+        dict.Clear();
+    }
+
+    private string ExtractFromUnits(string input, bool afterUnits)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+
+        // Step 1: Remove file extension
+        int dotIndex = input.LastIndexOf('.');
+        if (dotIndex >= 0)
+        {
+            input = input.Substring(0, dotIndex);
+        }
+
+        const string unitsToken = "_units_";
+        int unitsIndex = input.IndexOf(unitsToken);
+
+        if (unitsIndex >= 0)
+        {
+            if (afterUnits)
+            {
+                // Return part after _units_, no change in case
+                return input.Substring(unitsIndex + unitsToken.Length);
+            }
+            else
+            {
+                // Get last segment before _units_, in Title Case
+                string beforeUnits = input.Substring(0, unitsIndex);
+                string[] parts = beforeUnits.Split('_');
+                string lastSegment = parts[^1]; // C# 8.0+ syntax
+                return ToTitleCase(lastSegment);
+            }
+        }
+        else
+        {
+            if (afterUnits)
+            {
+                // No _units_ and afterUnits == true → return empty string
+                return string.Empty;
+            }
+            else
+            {
+                // No _units_ → return last part in Title Case
+                string[] parts = input.Split('_');
+                string lastSegment = parts[^1];
+                return ToTitleCase(lastSegment);
+            }
+        }
+    }
+
+    private string ToTitleCase(string word)
+    {
+        if (string.IsNullOrEmpty(word))
+            return word;
+
+        TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;
+        return textInfo.ToTitleCase(word.ToLower());
+    }
+
+    private string StringInTitleCaseWithUnits(string input, bool includeUnitsSuffix)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+
+        // Step 1: Remove file extension
+        int dotIndex = input.LastIndexOf('.');
+        if (dotIndex >= 0)
+        {
+            input = input.Substring(0, dotIndex);
+        }
+
+        // Handle _units_ case
+        string prefix = input;
+        string suffix = null;
+
+        string unitsToken = "_units_";
+        int unitsIndex = input.IndexOf(unitsToken);
+        if (unitsIndex >= 0)
+        {
+            prefix = input.Substring(0, unitsIndex);
+            if (includeUnitsSuffix)
+            {
+                suffix = input.Substring(unitsIndex + unitsToken.Length);
+            }
+        }
+
+        // Replace underscores and convert to title case
+        string spacedPrefix = prefix.Replace('_', ' ');
+        TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;
+        string titleCasePrefix = textInfo.ToTitleCase(spacedPrefix.ToLower());
+
+        // Append suffix in round brackets if required
+        if (!string.IsNullOrEmpty(suffix))
+        {
+            return $"{titleCasePrefix} ({suffix})";
+        }
+
+        return titleCasePrefix;
     }
 }
+
