@@ -631,7 +631,7 @@ public class LineChartVisualization : MonoBehaviour
                         // metadataTextObj.GetComponent<TextMeshProUGUI>().text = SimpleHoverInfo(dataPointCoord.x, dataPointCoord.y, datasetName);
                         if (datasetIndex == 0)
                         {
-                            metadataTextObj.GetComponent<TextMeshProUGUI>().text = HoverInfoWithChangePercentage(dataPointCoord.x, dataPointCoord.y, datasetName, header, index, true);
+                            metadataTextObj.GetComponent<TextMeshProUGUI>().text = HoverInfoWithChangePercentage(dataPointCoord.x, dataPointCoord.y, datasetName, header, index, true, true);
                         }
                         else 
                         {
@@ -641,7 +641,7 @@ public class LineChartVisualization : MonoBehaviour
                             }
                             else
                             {
-                                metadataTextObj.GetComponent<TextMeshProUGUI>().text = HoverInfoWithChangePercentage(dataPointCoord.x, dataPointCoord.y, datasetName, header, index, false);
+                                metadataTextObj.GetComponent<TextMeshProUGUI>().text = HoverInfoWithChangePercentage(dataPointCoord.x, dataPointCoord.y, datasetName, header, index, false, false);
                             }
                         }
 
@@ -672,7 +672,7 @@ public class LineChartVisualization : MonoBehaviour
         return metadata; 
     }
 
-    private string HoverInfoWithChangePercentage(float x, float y, string datasetName, string header, int index, bool reverse)
+    private string HoverInfoWithChangePercentage(float x, float y, string datasetName, string header, int index, bool reverse, bool absDiff)
     {
         string up_green = "<color=green>▲</color>";
         string up_red = "<color=red>▲</color>";   // U+25B2
@@ -698,6 +698,8 @@ public class LineChartVisualization : MonoBehaviour
 
         LineChartData chart = lineChartDict[datasetName][header];
         string metadata;
+        float relDiff;
+        string deltaSuffix;
 
         if (index == 0)
         {
@@ -706,14 +708,24 @@ public class LineChartVisualization : MonoBehaviour
         else
         {
             float prevY = chart.pointCoordsY[index - 1];
-            float relDiff = ((y - prevY) / prevY) * 100f;
-            if (relDiff >= 0)
+
+            if (absDiff)
             {
-                metadata = $"{xPrefix}: {Math.Round(x, 2)}{Environment.NewLine}{yPrefix}: {Math.Round(y, 2)} {ySuffix} <color=yellow>({up}by {Math.Round(relDiff, 1)} %)</color>";
+                relDiff = y - prevY;
+                deltaSuffix = ySuffix;
             }
             else
             {
-                metadata = $"{xPrefix}: {Math.Round(x, 2)}{Environment.NewLine}{yPrefix}: {Math.Round(y, 2)} {ySuffix} <color=yellow>({down}by {Math.Round(Math.Abs(relDiff), 1) }%)</color>";
+                relDiff = ((y - prevY) / prevY) * 100f;
+                deltaSuffix = "%";
+            }
+            if (relDiff >= 0)
+            {
+                metadata = $"{xPrefix}: {Math.Round(x, 2)}{Environment.NewLine}{yPrefix}: {Math.Round(y, 2)} {ySuffix} <color=yellow>({up}by {Math.Round(relDiff, 1)} {deltaSuffix})</color>";
+            }
+            else
+            {
+                metadata = $"{xPrefix}: {Math.Round(x, 2)}{Environment.NewLine}{yPrefix}: {Math.Round(y, 2)} {ySuffix} <color=yellow>({down}by {Math.Round(Math.Abs(relDiff), 1) } {deltaSuffix})</color>";
             }
 
         }
